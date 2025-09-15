@@ -1,6 +1,7 @@
 base_sources = [
   'frida.vala',
   'frida-glue.c',
+  'package-manager.vala',
   'control-service.vala',
   'portal-service.vala',
   'host-session-service.vala',
@@ -166,7 +167,7 @@ if have_local_backend
       'darwin' / 'policy-softener.vala',
       'darwin' / 'policy-softener-glue.c',
     ]
-    if host_os in ['macos', 'ios', 'tvos']
+    if host_os in ['macos', 'ios', 'tvos', 'xros']
       helper_backend_sources += [
         'darwin' / 'frida-helper-backend.vala',
         'darwin' / 'frida-helper-backend-glue.m',
@@ -178,7 +179,7 @@ if have_local_backend
         'darwin' / 'frida-helper-null-backend.vala',
       ]
     endif
-    if host_os in ['ios', 'tvos']
+    if host_os in ['ios', 'tvos', 'xros']
       helper_backend_sources += [
         'darwin' / 'springboard.m',
         'darwin' / 'substituted-client.c',
@@ -364,16 +365,14 @@ if have_local_backend
     helper_backend_vala_args = [
       base_vala_args,
       gum_vala_args,
-      '--pkg=gio-unix-2.0',
       '--pkg=posix',
     ]
     helper_backend = static_library('frida-helper-backend', helper_backend_sources,
       c_args: frida_component_cflags,
       vala_args: [
         helper_backend_vala_args,
-        '--vapidir=' + meson.current_source_dir() / 'linux',
-        '--pkg=frida-sysapi',
         '--pkg=linux',
+        '--pkg=linux-system',
         '--pkg=frida-gum-linux-1.0',
       ],
       dependencies: [gio_dep, gio_unix_dep, gee_dep, gum_dep, base_dep] + helper_backend_extra_deps,
@@ -512,6 +511,7 @@ if have_fruity_backend
     'fruity' / 'springboard-services.vala',
     'fruity' / 'lldb.vala',
     'fruity' / 'injector.vala',
+    'fruity' / 'debugger-mappings.vala',
     'fruity' / 'usbmux.vala',
     'fruity' / 'dns.vala',
     'fruity' / 'keyed-archive.vala',
@@ -634,6 +634,7 @@ core = library('frida-core', core_sources,
     base_vala_args,
     gumjs_inspector_vala_args,
     '--pkg=gmodule-2.0',
+    '--pkg=libsoup-3.0',
   ],
   vala_gir: core_gir_name,
   link_args: backend_libs_private,

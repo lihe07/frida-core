@@ -14,7 +14,7 @@
     "@frida/http-parser-js": "^1.0.0",
     "@frida/https": "^1.0.0",
     "@frida/ieee754": "^2.0.2",
-    "@frida/net": "^4.0.2",
+    "@frida/net": "^5.0.0",
     "@frida/os": "^1.0.2",
     "@frida/path": "^2.0.3",
     "@frida/process": "^1.2.1",
@@ -29,7 +29,7 @@
     "@frida/url": "^1.0.2",
     "@frida/util": "^1.0.3",
     "@frida/vm": "^2.0.0",
-    "@types/frida-gum": "19.0.0",
+    "@types/frida-gum": "19.0.1",
     "@types/node": "18.19.103",
     "frida-fs": "7.0.0"
   }

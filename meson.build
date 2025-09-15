@@ -12,9 +12,11 @@ if not meson.get_compiler('vala').version().endswith('-frida')
   error('''Incompatible Vala compiler detected.
 
 Frida currently relies on features not yet upstream. Grab the Frida-optimized
-Vala compiler from:
+Vala sources from:
 
-    https://github.com/frida/vala''')
+    https://github.com/frida/vala
+
+and compile them with Meson.''')
 endif
 
 c_languages = ['c', 'cpp']
@@ -269,12 +271,14 @@ if host_os == 'linux'
 #endif
 '''
   if cc.compiles(glibc_src, name: 'compiling for glibc')
-    cdata.set('HAVE_GLIBC', 1)
+    libc = 'glibc'
   elif cc.compiles(uclibc_src, name: 'compiling for uClibc')
-    cdata.set('HAVE_UCLIBC', 1)
+    libc = 'uclibc'
   else
-    cdata.set('HAVE_MUSL', 1)
+    libc = 'musl'
   endif
+  cdata.set('HAVE_' + libc.to_upper(), 1)
+  vala_flags += '--define=' + libc.to_upper()
 endif
 
 if get_option('b_sanitize') == 'address'
@@ -316,7 +320,7 @@ gobject_dep = dependency('gobject-2.0')
 gmodule_dep = dependency('gmodule-2.0')
 gio_dep = dependency('gio-2.0')
 gee_dep = dependency('gee-0.8', default_options: gee_options)
-json_glib_dep = dependency('json-glib-1.0', default_options: [
+json_glib_dep = dependency('json-glib-1.0', version: '>=1.8', default_options: [
   'introspection=disabled',
   'gtk_doc=disabled',
   'tests=false',
@@ -340,6 +344,7 @@ quickjs_dep = dependency('quickjs', required: get_option('barebone_backend'), de
   'atomics=disabled',
   'stack_check=disabled',
 ])
+lzfse_dep = dependency('lzfse', required: get_option('barebone_backend'))
 
 native_glib_dep = dependency('glib-2.0', version: '>=2.74', native: true, default_options: glib_options)
 native_gio_dep = dependency('gio-2.0', native: true)
@@ -406,7 +411,7 @@ have_droidy_backend = get_option('droidy_backend') \
     .allowed()
 have_socket_backend = get_option('socket_backend').allowed()
 have_barebone_backend = get_option('barebone_backend') \
-    .disable_if(not quickjs_dep.found()) \
+    .disable_if(not (quickjs_dep.found() and lzfse_dep.found())) \
     .disable_auto_if(not host_docks_mobile_devices) \
     .allowed()
 compiler_backend_opt = get_option('compiler_backend') \
@@ -423,6 +428,7 @@ if compiler_backend_opt.allowed()
         go,
         host_os,
         host_abi,
+        shlib_suffix,
         cc.get_id(),
         '>>>', cc.cmd_array(), '<<<',
         '>>>', ar, '<<<',
@@ -436,7 +442,13 @@ if compiler_backend_opt.allowed()
     status = lines[0]
     if status == 'ok'
       have_compiler_backend = true
-      go_config = lines[1]
+      tokens = lines[1].split(' ')
+      go_mode = tokens[0]
+      go_config = tokens[1]
+      compiler_backend_static_compilation = go_mode == 'c-archive'
+      if compiler_backend_static_compilation
+        vala_flags += '--define=COMPILER_BACKEND_STATIC_COMPILATION'
+      endif
     else
       error_message = lines[1]
       if compiler_backend_opt.enabled()
@@ -647,6 +659,7 @@ if get_option('devkits').length() != 0
   mkdevkit = [python, releng / 'mkdevkit.py']
   uninstalled_dir = meson.global_build_root() / 'meson-uninstalled'
   devkit_options = [
+    '--dep-symbol-scope', get_option('devkit_symbol_scope'),
     '--cc', '>>>', cc.cmd_array(), '<<<',
     '--c-args', '>>>', get_option('c_args'), '<<<',
     '--pkg-config', '>>>', find_program('pkg-config'), '<<<',

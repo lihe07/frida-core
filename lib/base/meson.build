@@ -9,9 +9,11 @@ base_sources = [
   'p2p-glue.c',
   'dbus.vala',
   'promise.vala',
+  'fs.vala',
   'socket.vala',
   'socket-glue.c',
   'buffer.vala',
+  'buffer-glue.c',
   'value.vala',
 ]
 
@@ -26,6 +28,15 @@ endif
 
 if host_os_family == 'darwin'
   base_sources += 'corefoundation.vala'
+endif
+
+if host_os_family == 'linux'
+  base_sources += 'linux.vala'
+  extra_vala_args += [
+    '--pkg=linux',
+    '--pkg=linux-system',
+    '--pkg=posix',
+  ]
 endif
 
 extra_deps = []
@@ -45,6 +56,12 @@ if host_os_family == 'darwin'
     '--pkg=darwin-xpc',
   ]
 endif
+if host_os_family == 'linux'
+  base_vala_args += [
+    '--vapidir=' + meson.current_source_dir(),
+    '--pkg=gio-unix-2.0',
+  ]
+endif
 
 base_gir_name = f'FridaBase-@api_version@.gir'
 
@@ -62,7 +79,7 @@ base = static_library('frida-base-' + api_version, base_sources,
 base_dep = declare_dependency(
   include_directories: include_directories('.'),
   link_with: base,
-  dependencies: [nice_dep, json_glib_dep, gum_dep],
+  dependencies: [nice_dep, json_glib_dep, gum_dep] + extra_deps,
 )
 
 base_build_dir = meson.current_build_dir()
